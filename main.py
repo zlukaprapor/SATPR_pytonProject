@@ -38,7 +38,6 @@ class ImageLoaderApp:
         self.show_matrix_button.pack()
 
 
-
         self.binary_image_button = tk.Button(root, text="step 5 -> Show Binary Images", command=self.show_binary_images, state=tk.DISABLED)
         self.binary_image_button.pack()
 
