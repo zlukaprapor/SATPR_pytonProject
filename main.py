@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, scrolledtext
 from PIL import Image, ImageTk
 import numpy as np
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 
 class ImageLoaderApp:
@@ -37,12 +39,14 @@ class ImageLoaderApp:
         self.show_matrix_button = tk.Button(root, text="step 4 -> Show Matrices", command=self.show_matrices, state=tk.DISABLED)
         self.show_matrix_button.pack()
 
-
         self.binary_image_button = tk.Button(root, text="step 5 -> Show Binary Images", command=self.show_binary_images, state=tk.DISABLED)
         self.binary_image_button.pack()
 
         self.plot_button = tk.Button(root, text="step 6 -> Show Vector", command=self.plot_expectation_vector, state=tk.DISABLED)
         self.plot_button.pack()
+
+        self.tolerance_button = tk.Button(root, text="step 7 -> Show Tolerance System", command=self.plot_tolerance_system, state=tk.DISABLED)
+        self.tolerance_button.pack()
 
         self.image_frame = tk.Frame(root)
         self.image_frame.pack()
@@ -96,6 +100,7 @@ class ImageLoaderApp:
         self.show_matrix_button.config(state=tk.NORMAL)
         self.binary_image_button.config(state=tk.NORMAL)
         self.plot_button.config(state=tk.NORMAL)
+        self.tolerance_button.config(state=tk.NORMAL)
 
         # Відображення завантажених зображень
         self.display_images()
@@ -216,10 +221,59 @@ class ImageLoaderApp:
 
         # Виведення бінарних матриць у вікно
         for i, binary_matrix in enumerate(self.binary_matrices):
-            self.matrix_window.insert(tk.END, f"Binary matrix for image {i + 1} ({self.class_names[i]}):\n")
+            self.matrix_window.insert(tk.END, f"Binary Matrix for image {i + 1} ({self.class_names[i]}):\n")
             self.matrix_window.insert(tk.END, f"{binary_matrix}\n\n")
 
+    def clear_canvas(self):
+        # Очищення віджетів, що були додані раніше до контейнера
+        for widget in self.image_frame.winfo_children():
+            widget.destroy()
+
     def plot_expectation_vector(self):
+        self.clear_canvas()  # Очищення фрейму перед побудовою графіка
+
+        if not self.image_matrices:
+            messagebox.showwarning("Warning", "No image matrices available.")
+            return
+
+        # Обчислення середнього та стандартного відхилення для кожного класу
+        avg_values = [np.mean(matrix) for matrix in self.image_matrices]
+        std_values = [np.std(matrix) for matrix in self.image_matrices]
+
+        # Створення фігури matplotlib
+        fig = Figure(figsize=(8, 6), dpi=100)
+        ax = fig.add_subplot(111)
+
+        # Позиції на осі X
+        x = np.arange(self.num_classes)
+
+        # Побудова лінійного графіку із помилками (error bars)
+        ax.errorbar(x, avg_values, yerr=std_values, fmt='-o', color='blue', ecolor='red', capsize=5,
+                    label='Avg. values with Std. Dev.')
+
+        # Додавання підписів значень
+        for i, avg in enumerate(avg_values):
+            ax.text(i, avg + 0.05, round(avg, 2), ha='center', va='bottom', fontsize=10)
+
+        # Налаштування осей
+        ax.set_xlabel('Class', fontsize=12)
+        ax.set_ylabel('Average Pixel Value', fontsize=12)
+        ax.set_title('Average Pixel Values with Standard Deviation by Class', fontsize=14)
+        ax.set_xticks(x)
+        ax.set_xticklabels(self.class_names, fontsize=10)
+
+        # Додавання сітки
+        ax.grid(True, linestyle='--', alpha=0.6)
+
+        # Додавання легенди
+        ax.legend()
+
+        # Відображення графіка у tkinter через FigureCanvasTkAgg
+        canvas = FigureCanvasTkAgg(fig, master=self.image_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+    def plot_tolerance_system(self):
         if self.base_class_index is None:
             messagebox.showwarning("Warning", "Please select a base class first.")
             return
@@ -239,20 +293,30 @@ class ImageLoaderApp:
         lower_bound = expectation_vector - self.delta
         upper_bound = expectation_vector + self.delta
 
-        # Побудова графіка
+        # Побудова графіка системи контрольних допусків
         x = np.arange(len(expectation_vector))
 
-        plt.figure(figsize=(10, 5))
-        plt.plot(x, expectation_vector, label="Expectation (mean) vector", color='blue', marker='o')
-        plt.fill_between(x, lower_bound, upper_bound, color='gray', alpha=0.3, label="Tolerance corridor")
+        # Створення фігури matplotlib для контрольних допусків
+        fig = Figure(figsize=(5, 4), dpi=100)
+        ax = fig.add_subplot(111)
+        ax.plot(x, lower_bound, label="Lower Tolerance", color='red', linestyle='--')
+        ax.plot(x, upper_bound, label="Upper Tolerance", color='green', linestyle='--')
+        ax.plot(x, expectation_vector, label="Expectation (mean) vector", color='blue', marker='o')
 
-        plt.xlabel("Feature index")
-        plt.ylabel("Value")
-        plt.title("Expectation Vector and Tolerance Corridor")
-        plt.legend()
-        plt.grid(True)
-        plt.show()
+        ax.set_xlabel("Feature index")
+        ax.set_ylabel("Tolerance Value")
+        ax.set_title("Tolerance System")
+        ax.legend()
+        ax.grid(True)
 
+        # Очищення попереднього графіка, якщо такий існує
+        for widget in self.image_frame.winfo_children():
+            widget.destroy()
+
+        # Вбудовування графіка у tkinter через FigureCanvasTkAgg
+        canvas = FigureCanvasTkAgg(fig, master=self.image_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
 if __name__ == "__main__":
     root = tk.Tk()
