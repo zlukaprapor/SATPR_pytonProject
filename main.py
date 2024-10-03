@@ -4,7 +4,8 @@ from PIL import Image, ImageTk
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
+import math
+from scipy.spatial.distance import euclidean
 
 class ImageLoaderApp:
     def __init__(self, root):
@@ -19,6 +20,8 @@ class ImageLoaderApp:
         self.base_class_index = None
         self.binary_matrices = []
         self.delta = 10  # Значення за замовчуванням для кроку дельта
+        self.SK = []  # Ініціалізація порожніх масивів
+        self.SK_PARA = []  # Ініціалізація порожніх масивів
 
         # Створення віджетів
         self.class_label = tk.Label(root, text="Enter number of classes:")
@@ -47,6 +50,9 @@ class ImageLoaderApp:
 
         self.tolerance_button = tk.Button(root, text="step 7 -> Show Tolerance System", command=self.plot_tolerance_system, state=tk.DISABLED)
         self.tolerance_button.pack()
+
+        self.sk_map_button = tk.Button(root, text="step 8 -> Show SK_MAP", command=self.plot_SK_MAP, state=tk.DISABLED)
+        self.sk_map_button.pack()
 
         self.image_frame = tk.Frame(root)
         self.image_frame.pack()
@@ -101,6 +107,7 @@ class ImageLoaderApp:
         self.binary_image_button.config(state=tk.NORMAL)
         self.plot_button.config(state=tk.NORMAL)
         self.tolerance_button.config(state=tk.NORMAL)
+        self.sk_map_button.config(state=tk.NORMAL)
 
         # Відображення завантажених зображень
         self.display_images()
@@ -124,6 +131,9 @@ class ImageLoaderApp:
 
         # Побудова бінарних матриць на основі базового класу
         self.build_binary_matrices()
+
+        # Обчислення кодових відстаней
+        self.compute_coding_distances()
 
     def build_binary_matrices(self):
         if self.base_class_index is None:
@@ -314,6 +324,98 @@ class ImageLoaderApp:
             widget.destroy()
 
         # Вбудовування графіка у tkinter через FigureCanvasTkAgg
+        canvas = FigureCanvasTkAgg(fig, master=self.image_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+    def compute_class_centers(self):
+        """Обчислює геометричні центри для кожного класу (середнє значення пікселів)."""
+        self.class_centers = [np.mean(matrix) for matrix in self.image_matrices]
+
+    def find_nearest_neighbor(self, current_class_idx):
+        """Знаходить найближчий клас-сусід на основі відстаней між центрами класів."""
+        current_center = self.class_centers[current_class_idx]
+        min_distance = float('inf')
+        nearest_neighbor_idx = None
+
+        for i, center in enumerate(self.class_centers):
+            if i != current_class_idx:  # не порівнюємо клас сам із собою
+                distance = abs(current_center - center)
+                if distance < min_distance:
+                    min_distance = distance
+                    nearest_neighbor_idx = i
+
+        return nearest_neighbor_idx
+
+    def compute_coding_distances(self):
+        """Розраховує кодові відстані та формує масиви SK і SK_PARA."""
+        self.compute_class_centers()  # Спочатку обчислюємо центри класів
+
+        self.SK = []
+        self.SK_PARA = []
+
+        for class_idx in range(self.num_classes):
+            # Масив для кодових відстаней поточного класу
+            current_class_matrix = self.image_matrices[class_idx]
+            current_center = self.class_centers[class_idx]
+
+            # Знаходимо найближчого сусіда
+            nearest_neighbor_idx = self.find_nearest_neighbor(class_idx)
+            nearest_neighbor_matrix = self.image_matrices[nearest_neighbor_idx]
+            nearest_center = self.class_centers[nearest_neighbor_idx]
+
+            # Обчислюємо відстані між геометричним центром поточного класу та реалізаціями цього класу
+            distances_to_current_class = [abs(current_center - np.mean(row)) for row in current_class_matrix]
+
+            # Обчислюємо відстані між геометричним центром поточного класу та реалізаціями найближчого сусіда
+            distances_to_nearest_neighbor = [abs(current_center - np.mean(row)) for row in nearest_neighbor_matrix]
+
+            # Формуємо масив SK (кодові відстані для поточного класу)
+            self.SK.append([distances_to_current_class, distances_to_nearest_neighbor])
+
+            # Формуємо масив SK_PARA (кодові відстані для сусіднього класу)
+            distances_to_nearest_neighbor_class = [abs(nearest_center - np.mean(row)) for row in current_class_matrix]
+            distances_to_nearest_neighbor_to_self = [abs(nearest_center - np.mean(row)) for row in nearest_neighbor_matrix]
+            self.SK_PARA.append([distances_to_nearest_neighbor_class, distances_to_nearest_neighbor_to_self])
+
+        messagebox.showinfo("Success", "Coding distances (SK and SK_PARA) have been calculated.")
+
+
+    def plot_SK_MAP(self):
+        """Відображення розподілу реалізацій між поточним класом і його найближчим сусідом."""
+        if not self.SK or not self.SK_PARA:
+            messagebox.showwarning("Warning", "Please calculate coding distances first.")
+            return
+
+        self.clear_canvas()  # Очищуємо попередній графік
+
+        fig = Figure(figsize=(8, 6), dpi=100)
+        ax = fig.add_subplot(111)
+
+        # Масиви для X-координат (реалізації розташовуються по горизонтальній осі)
+        # Припускаємо, що всі класи мають однакову кількість реалізацій
+        num_realizations_current = len(self.SK[0][0])
+        num_realizations_neighbor = len(self.SK_PARA[0][0])
+
+        x_current_class = np.arange(num_realizations_current)
+        x_nearest_class = np.arange(num_realizations_neighbor)
+
+        # Відображення реалізацій поточного класу та їх відстаней
+        ax.scatter(x_current_class, self.SK[0][0], color='blue', label='Current Class Realizations')
+        ax.scatter(x_nearest_class, self.SK[1][0], color='green', label='Nearest Neighbor Realizations')
+
+        # Відображення реалізацій сусіднього класу
+        ax.scatter(x_current_class, self.SK_PARA[0][0], color='red', label='SK_PARA (Current to Neighbor)')
+        ax.scatter(x_nearest_class, self.SK_PARA[1][0], color='purple', label='SK_PARA (Neighbor to Current)')
+
+        # Налаштування графіку
+        ax.set_xlabel("Realization Index")
+        ax.set_ylabel("Coding Distance")
+        ax.set_title("Distribution of Realizations between Current Class and Neighbor")
+        ax.legend()
+        ax.grid(True)
+
+        # Вбудовуємо графік у tkinter через FigureCanvasTkAgg
         canvas = FigureCanvasTkAgg(fig, master=self.image_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
