@@ -12,6 +12,10 @@ class ImageLoaderApp:
         self.root = root
         self.root.title("Image Loader")
 
+        # Фіксований розмір вікна
+        self.root.geometry('1368x768')
+        self.root.resizable(False, False)  # Забороняємо змінювати розмір вікна
+
         # Ініціалізація змінних
         self.num_classes = 0
         self.images = []
@@ -23,50 +27,69 @@ class ImageLoaderApp:
         self.SK = []  # Ініціалізація порожніх масивів
         self.SK_PARA = []  # Ініціалізація порожніх масивів
 
-        # Створення віджетів
-        self.class_label = tk.Label(root, text="Enter number of classes:")
-        self.class_label.pack()
+        # Створення фреймів для кращої організації
+        self.top_frame = tk.Frame(root, pady=10)
+        self.top_frame.pack(side=tk.TOP, fill=tk.X)
 
-        self.class_entry = tk.Entry(root)
-        self.class_entry.pack()
+        self.middle_frame = tk.Frame(root, pady=10)
+        self.middle_frame.pack(side=tk.TOP, fill=tk.X)
 
-        self.load_button = tk.Button(root, text="step 1 -> Load Images", command=self.load_images)
-        self.load_button.pack()
+        self.bottom_frame = tk.Frame(root, pady=10)
+        self.bottom_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        self.check_button = tk.Button(root, text="step 2 -> Check Image Sizes", command=self.check_image_sizes, state=tk.DISABLED)
-        self.check_button.pack()
+        # Верхній фрейм (введення класів і кнопки)
+        self.class_label = tk.Label(self.top_frame, text="Enter number of classes:")
+        self.class_label.pack(side=tk.LEFT, padx=5)
 
-        self.select_base_class_button = tk.Button(root, text="step 3 -> Select Base Class",command=self.select_base_class, state=tk.DISABLED)
-        self.select_base_class_button.pack()
+        self.class_entry = tk.Entry(self.top_frame)
+        self.class_entry.pack(side=tk.LEFT, padx=5)
 
-        self.show_matrix_button = tk.Button(root, text="step 4 -> Show Matrices", command=self.show_matrices, state=tk.DISABLED)
-        self.show_matrix_button.pack()
+        self.load_button = tk.Button(self.top_frame, text="Step 1 -> Load Images", command=self.load_images)
+        self.load_button.pack(side=tk.LEFT, padx=5)
 
-        self.binary_image_button = tk.Button(root, text="step 5 -> Show Binary Images", command=self.show_binary_images, state=tk.DISABLED)
-        self.binary_image_button.pack()
+        # Середній фрейм (кнопки дій)
+        self.check_button = tk.Button(self.middle_frame, text="Step 2 -> Check Image Sizes",
+                                      command=self.check_image_sizes, state=tk.DISABLED)
+        self.check_button.pack(side=tk.LEFT, padx=5)
 
-        self.plot_button = tk.Button(root, text="step 6 -> Show Vector", command=self.plot_expectation_vector, state=tk.DISABLED)
-        self.plot_button.pack()
+        self.select_base_class_button = tk.Button(self.middle_frame, text="Step 3 -> Select Base Class",
+                                                  command=self.select_base_class, state=tk.DISABLED)
+        self.select_base_class_button.pack(side=tk.LEFT, padx=5)
 
-        self.tolerance_button = tk.Button(root, text="step 7 -> Show Tolerance System", command=self.plot_tolerance_system, state=tk.DISABLED)
-        self.tolerance_button.pack()
+        self.show_matrix_button = tk.Button(self.middle_frame, text="Step 4 -> Show Matrices",
+                                            command=self.show_matrices, state=tk.DISABLED)
+        self.show_matrix_button.pack(side=tk.LEFT, padx=5)
 
-        self.sk_map_button = tk.Button(root, text="step 8 -> Show SK_MAP", command=self.plot_sk_map, state=tk.DISABLED)
-        self.sk_map_button.pack()
+        self.binary_image_button = tk.Button(self.middle_frame, text="Step 5 -> Show Binary Images",
+                                             command=self.show_binary_images, state=tk.DISABLED)
+        self.binary_image_button.pack(side=tk.LEFT, padx=5)
 
-        self.distance_button = tk.Button(root, text="step 9 -> Compute Distances",
+        self.plot_button = tk.Button(self.middle_frame, text="Step 6 -> Show Vector",
+                                     command=self.plot_expectation_vector, state=tk.DISABLED)
+        self.plot_button.pack(side=tk.LEFT, padx=5)
+
+        self.tolerance_button = tk.Button(self.middle_frame, text="Step 7 -> Show Tolerance System",
+                                          command=self.plot_tolerance_system, state=tk.DISABLED)
+        self.tolerance_button.pack(side=tk.LEFT, padx=5)
+
+        self.sk_map_button = tk.Button(self.middle_frame, text="Step 8 -> Show SK_MAP", command=self.plot_sk_map,
+                                       state=tk.DISABLED)
+        self.sk_map_button.pack(side=tk.LEFT, padx=5)
+
+        self.distance_button = tk.Button(self.middle_frame, text="Step 9 -> Compute Distances",
                                          command=self.compute_distances_from_reference, state=tk.DISABLED)
-        self.distance_button.pack()
+        self.distance_button.pack(side=tk.LEFT, padx=5)
 
-        self.image_frame = tk.Frame(root)
-        self.image_frame.pack()
+        # Нижній фрейм (відображення зображень та текстові поля)
+        self.image_frame = tk.Frame(self.bottom_frame)
+        self.image_frame.pack(side=tk.LEFT, padx=10)
 
-        self.info_label = tk.Label(root, text="")
-        self.info_label.pack()
+        self.info_label = tk.Label(self.bottom_frame, text="")
+        self.info_label.pack(side=tk.TOP, padx=5)
 
         # Віджет для відображення матриць
-        self.matrix_window = scrolledtext.ScrolledText(root, width=60, height=20, wrap=tk.WORD)
-        self.matrix_window.pack()
+        self.matrix_window = scrolledtext.ScrolledText(self.bottom_frame, width=60, height=20, wrap=tk.WORD)
+        self.matrix_window.pack(side=tk.LEFT, padx=10)
 
     def load_images(self):
         try:
@@ -407,8 +430,8 @@ class ImageLoaderApp:
         x_nearest_class = np.arange(num_realizations_neighbor)
 
         # Відображення реалізацій поточного класу та їх відстаней
-        ax.scatter(x_current_class, self.SK[0][0], color='blue', label='Current Class Realizations')
-        ax.scatter(x_nearest_class, self.SK[1][0], color='green', label='Nearest Neighbor Realizations')
+       # ax.scatter(x_current_class, self.SK[0][0], color='blue', label='Current Class Realizations')
+       # ax.scatter(x_nearest_class, self.SK[1][0], color='green', label='Nearest Neighbor Realizations')
 
         # Відображення реалізацій сусіднього класу
         ax.scatter(x_current_class, self.SK_PARA[0][0], color='red', label='SK_PARA (Current to Neighbor)')
@@ -427,23 +450,22 @@ class ImageLoaderApp:
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
     def compute_distances_from_reference(self):
-        """Обчислити відстані від кожного зображення до його центру класу."""
-        if not self.class_centers:
-            messagebox.showwarning("Увага", "Спочатку обчисліть центри класів.")
+        """Обчислити відстані від кожного зображення до його центру класу на основі бінарних матриць."""
+        if not self.binary_matrices:
+            messagebox.showwarning("Увага", "Спочатку обчисліть бінарні матриці.")
             return
 
         distances = []
         for i in range(self.num_classes):
-            current_class_matrix = self.image_matrices[i]
+            current_class_matrix = self.binary_matrices[i]
 
-            # Обчислення центру класу
+            # Обчислення центру класу на основі бінарної матриці
             class_center = np.mean(current_class_matrix, axis=0)
 
-        
             if class_center.ndim > 1:
                 class_center = class_center.flatten()
 
-            # Обчисліть відстані для кожного рядка в поточному класі
+            # Обчисліть відстані для кожного рядка в бінарній матриці поточного класу
             class_distances = []
             for row in current_class_matrix:
                 row_flat = row.flatten()  # Перетворення рядка в 1-D
@@ -458,8 +480,12 @@ class ImageLoaderApp:
         # Виведення відстаней у вікно матриці
         self.matrix_window.delete(1.0, tk.END)
         for i, dist_list in enumerate(distances):
-            self.matrix_window.insert(tk.END, f"Відстані від класу {self.class_names[i]} до його центру:\n")
-            self.matrix_window.insert(tk.END, f"{dist_list}\n\n")
+            self.matrix_window.insert(tk.END,
+                                      f"Відстані від класу {self.class_names[i]} до його центру (на основі бінарних матриць):\n")
+            # Округлення кожного значення до десятої при виведенні
+            formatted_dist_list = ', '.join(f"{d:.1f}" for d in dist_list)
+            self.matrix_window.insert(tk.END, f"{formatted_dist_list}\n\n")
+
         messagebox.showinfo("Успіх", "Відстані були обчислені та відображені.")
 
 
