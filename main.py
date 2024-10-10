@@ -51,8 +51,12 @@ class ImageLoaderApp:
         self.tolerance_button = tk.Button(root, text="step 7 -> Show Tolerance System", command=self.plot_tolerance_system, state=tk.DISABLED)
         self.tolerance_button.pack()
 
-        self.sk_map_button = tk.Button(root, text="step 8 -> Show SK_MAP", command=self.plot_SK_MAP, state=tk.DISABLED)
+        self.sk_map_button = tk.Button(root, text="step 8 -> Show SK_MAP", command=self.plot_sk_map, state=tk.DISABLED)
         self.sk_map_button.pack()
+
+        self.distance_button = tk.Button(root, text="step 9 -> Compute Distances",
+                                         command=self.compute_distances_from_reference, state=tk.DISABLED)
+        self.distance_button.pack()
 
         self.image_frame = tk.Frame(root)
         self.image_frame.pack()
@@ -108,6 +112,7 @@ class ImageLoaderApp:
         self.plot_button.config(state=tk.NORMAL)
         self.tolerance_button.config(state=tk.NORMAL)
         self.sk_map_button.config(state=tk.NORMAL)
+        self.distance_button.config(state=tk.NORMAL)
 
         # Відображення завантажених зображень
         self.display_images()
@@ -381,7 +386,8 @@ class ImageLoaderApp:
         messagebox.showinfo("Success", "Coding distances (SK and SK_PARA) have been calculated.")
 
 
-    def plot_SK_MAP(self):
+    def plot_sk_map(self):
+
         """Відображення розподілу реалізацій між поточним класом і його найближчим сусідом."""
         if not self.SK or not self.SK_PARA:
             messagebox.showwarning("Warning", "Please calculate coding distances first.")
@@ -419,6 +425,43 @@ class ImageLoaderApp:
         canvas = FigureCanvasTkAgg(fig, master=self.image_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+    def compute_distances_from_reference(self):
+        """Обчислити відстані від кожного зображення до його центру класу."""
+        if not self.class_centers:
+            messagebox.showwarning("Увага", "Спочатку обчисліть центри класів.")
+            return
+
+        distances = []
+        for i in range(self.num_classes):
+            current_class_matrix = self.image_matrices[i]
+
+            # Обчислення центру класу
+            class_center = np.mean(current_class_matrix, axis=0)
+
+        
+            if class_center.ndim > 1:
+                class_center = class_center.flatten()
+
+            # Обчисліть відстані для кожного рядка в поточному класі
+            class_distances = []
+            for row in current_class_matrix:
+                row_flat = row.flatten()  # Перетворення рядка в 1-D
+                if row_flat.ndim == 1 and class_center.ndim == 1:
+                    distance = euclidean(row_flat, class_center)
+                    class_distances.append(distance)
+                else:
+                    print(f"Неправильний формат: row_shape={row_flat.shape}, class_center_shape={class_center.shape}")
+
+            distances.append(class_distances)
+
+        # Виведення відстаней у вікно матриці
+        self.matrix_window.delete(1.0, tk.END)
+        for i, dist_list in enumerate(distances):
+            self.matrix_window.insert(tk.END, f"Відстані від класу {self.class_names[i]} до його центру:\n")
+            self.matrix_window.insert(tk.END, f"{dist_list}\n\n")
+        messagebox.showinfo("Успіх", "Відстані були обчислені та відображені.")
+
 
 if __name__ == "__main__":
     root = tk.Tk()
