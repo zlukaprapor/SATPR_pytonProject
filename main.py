@@ -34,6 +34,9 @@ class ImageLoaderApp:
         self.middle_frame = tk.Frame(root, pady=10)
         self.middle_frame.pack(side=tk.TOP, fill=tk.X)
 
+        self.middle_frame_two = tk.Frame(root, pady=10)
+        self.middle_frame_two.pack(side=tk.TOP, fill=tk.X)
+
         self.bottom_frame = tk.Frame(root, pady=10)
         self.bottom_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
@@ -79,6 +82,11 @@ class ImageLoaderApp:
         self.distance_button = tk.Button(self.middle_frame, text="Step 9 -> Compute Distances",
                                          command=self.compute_distances_from_reference, state=tk.DISABLED)
         self.distance_button.pack(side=tk.LEFT, padx=5)
+
+        # Додаємо кнопку для обчислення точнісних характеристик
+        self.accuracy_button = tk.Button(self.middle_frame_two, text="Steep 10 -> Compute Accuracy Metrics",
+                                         command=self.display_accuracy_metrics, state=tk.DISABLED)
+        self.accuracy_button.pack(side=tk.LEFT, padx=5)
 
         # Нижній фрейм (відображення зображень та текстові поля)
         self.image_frame = tk.Frame(self.bottom_frame)
@@ -136,7 +144,7 @@ class ImageLoaderApp:
         self.tolerance_button.config(state=tk.NORMAL)
         self.sk_map_button.config(state=tk.NORMAL)
         self.distance_button.config(state=tk.NORMAL)
-
+        self.accuracy_button.config(state=tk.NORMAL)
         # Відображення завантажених зображень
         self.display_images()
 
@@ -488,6 +496,45 @@ class ImageLoaderApp:
 
         messagebox.showinfo("Успіх", "Відстані були обчислені та відображені.")
 
+    def compute_accuracy_metrics(self, K1, K2, n):
+        """
+        Обчислює точнісні характеристики:
+        D1 - перша достовірність
+        a - помилка першого роду
+        b - помилка другого роду
+        D2 - друга достовірність
+        """
+        D1 = K1 / n  # Перша достовірність
+        a = 1 - D1  # Помилка першого роду
+        b = K2 / n  # Помилка другого роду
+        D2 = 1 - b  # Друга достовірність
+
+        return D1, a, b, D2
+
+    def display_accuracy_metrics(self):
+        """
+        Виводить значення точнісних характеристик на екран.
+        """
+        try:
+            K1 = simpledialog.askinteger("Input", "Enter K1 (кількість своїх реалізацій):")
+            K2 = simpledialog.askinteger("Input", "Enter K2 (кількість чужих реалізацій):")
+            n = simpledialog.askinteger("Input", "Enter n (загальна кількість реалізацій):")
+
+            if K1 is None or K2 is None or n is None or K1 < 0 or K2 < 0 or n <= 0:
+                messagebox.showerror("Input Error", "Please enter valid positive numbers for K1, K2, and n.")
+                return
+
+            D1, a, b, D2 = self.compute_accuracy_metrics(K1, K2, n)
+
+            self.matrix_window.delete(1.0, tk.END)
+            self.matrix_window.insert(tk.END, f"Точнісні характеристики:\n")
+            self.matrix_window.insert(tk.END, f"D1 (перша достовірність): {D1:.2f}\n")
+            self.matrix_window.insert(tk.END, f"a (помилка першого роду): {a:.2f}\n")
+            self.matrix_window.insert(tk.END, f"b (помилка другого роду): {b:.2f}\n")
+            self.matrix_window.insert(tk.END, f"D2 (друга достовірність): {D2:.2f}\n")
+
+        except ValueError:
+            messagebox.showerror("Input Error", "Please enter valid numbers.")
 
 if __name__ == "__main__":
     root = tk.Tk()
