@@ -88,21 +88,21 @@ class ImageLoaderApp:
         self.distance_button.pack(side=tk.LEFT, padx=5)
 
         # Додаємо кнопку для обчислення точнісних характеристик
-        self.accuracy_button = tk.Button(self.middle_frame_two, text="Compute Accuracy Metrics",
-                                         command=self.display_accuracy_metrics)
-        self.accuracy_button.pack(side=tk.LEFT, padx=5)
+    #    self.accuracy_button = tk.Button(self.middle_frame_two, text="Compute Accuracy Metrics",
+    #                                  command=self.display_accuracy_metrics)
+    #    self.accuracy_button.pack(side=tk.LEFT, padx=5)
 
-        self.kfe_kullback_button = tk.Button(self.middle_frame_two, text="Compute KFE (Kullback)",
-                                             command=self.compute_kfe_kullback)
-        self.kfe_kullback_button.pack(side=tk.LEFT, padx=5)
+    #    self.kfe_kullback_button = tk.Button(self.middle_frame_two, text="Compute KFE (Kullback)",
+    #                                         command=self.compute_kfe_kullback)
+    #    self.kfe_kullback_button.pack(side=tk.LEFT, padx=5)
 
-        self.kfe_shannon_button = tk.Button(self.middle_frame_two, text="Compute KFE (Shannon)",
-                                            command=self.compute_kfe_shannon)
-        self.kfe_shannon_button.pack(side=tk.LEFT, padx=5)
+    #    self.kfe_shannon_button = tk.Button(self.middle_frame_two, text="Compute KFE (Shannon)",
+    #                                        command=self.compute_kfe_shannon)
+    #    self.kfe_shannon_button.pack(side=tk.LEFT, padx=5)
 
-        self.optimize_radius_button = tk.Button(self.middle_frame_two, text="Optimize Radius",
-                                                command=self.optimize_radius)
-        self.optimize_radius_button.pack(side=tk.LEFT, padx=5)
+    #    self.optimize_radius_button = tk.Button(self.middle_frame_two, text="Optimize Radius",
+    #                                            command=self.optimize_radius)
+    #    self.optimize_radius_button.pack(side=tk.LEFT, padx=5)
 
         # Нижній фрейм (відображення зображень та текстові поля)
         self.image_frame = tk.Frame(self.bottom_frame)
@@ -185,9 +185,6 @@ class ImageLoaderApp:
         # Побудова бінарних матриць на основі базового класу
         self.build_binary_matrices()
 
-        # Обчислення кодових відстаней
-        self.compute_coding_distances()
-
 # Створює бінарні матриці на основі базового класу.
     def build_binary_matrices(self):
         if self.base_class_index is None:
@@ -199,7 +196,7 @@ class ImageLoaderApp:
 
         self.binary_matrices = []
         for matrix in self.image_matrices:
-            binary_matrix = np.where(matrix >= base_mean, 1, 0)
+            binary_matrix = np.where(matrix >= base_mean, True, False)
             self.binary_matrices.append(binary_matrix)
 
         messagebox.showinfo("Success", "Binary matrices have been built based on the base class.")
@@ -439,10 +436,13 @@ class ImageLoaderApp:
             distances_to_nearest_neighbor_to_self = [abs(nearest_center - np.mean(row)) for row in nearest_neighbor_matrix]
             self.SK_PARA.append([distances_to_nearest_neighbor_class, distances_to_nearest_neighbor_to_self])
 
-        messagebox.showinfo("Success", "Coding distances (SK and SK_PARA) have been calculated.")
+        # messagebox.showinfo("Success", "Coding distances (SK and SK_PARA) have been calculated.")
 
 # Відображення розподілу реалізацій між поточним класом і його найближчим сусідом
     def plot_sk_map(self):
+
+        # Обчислення кодових відстаней
+        self.compute_coding_distances()
 
         if not self.SK or not self.SK_PARA:
             messagebox.showwarning("Warning", "Please calculate coding distances first.")
@@ -481,6 +481,9 @@ class ImageLoaderApp:
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
+        # Обчислення кодових відстаней
+        self.compute_coding_distances()
+
 # Обчислити відстані від кожного зображення до його центру класу на основі бінарних матриць
     def compute_distances_from_reference(self):
         if not self.binary_matrices:
@@ -518,239 +521,7 @@ class ImageLoaderApp:
             formatted_dist_list = ', '.join(f"{d:.1f}" for d in dist_list)
             self.matrix_window.insert(tk.END, f"{formatted_dist_list}\n\n")
 
-        messagebox.showinfo("Успіх", "Відстані були обчислені та відображені.")
-
-# Обчислює та відображає точнісні характеристики.
-    def compute_accuracy_metrics(self, K1, K2, n):
-        """
-        Обчислює точнісні характеристики:
-        D1 - перша достовірність
-        a - помилка першого роду
-        b - помилка другого роду
-        D2 - друга достовірність
-        """
-        D1 = K1 / n  # Перша достовірність
-        a = 1 - D1  # Помилка першого роду
-        b = K2 / n  # Помилка другого роду
-        D2 = 1 - b  # Друга достовірність
-
-        return D1, a, b, D2
-
-# Виводить значення точнісних характеристик на екран.
-    def display_accuracy_metrics(self):
-        try:
-            K1 = simpledialog.askinteger("Input", "Enter K1 (кількість своїх реалізацій):")
-            K2 = simpledialog.askinteger("Input", "Enter K2 (кількість чужих реалізацій):")
-            n = simpledialog.askinteger("Input", "Enter n (загальна кількість реалізацій):")
-
-            if K1 is None or K2 is None or n is None or K1 < 0 or K2 < 0 or n <= 0:
-                messagebox.showerror("Input Error", "Please enter valid positive numbers for K1, K2, and n.")
-                return
-
-            D1, a, b, D2 = self.compute_accuracy_metrics(K1, K2, n)
-
-            self.matrix_window.delete(1.0, tk.END)
-            self.matrix_window.insert(tk.END, f"Точнісні характеристики:\n")
-            self.matrix_window.insert(tk.END, f"D1 (перша достовірність): {D1:.2f}\n")
-            self.matrix_window.insert(tk.END, f"a (помилка першого роду): {a:.2f}\n")
-            self.matrix_window.insert(tk.END, f"b (помилка другого роду): {b:.2f}\n")
-            self.matrix_window.insert(tk.END, f"D2 (друга достовірність): {D2:.2f}\n")
-
-        except ValueError:
-            messagebox.showerror("Input Error", "Please enter valid numbers.")
-
-# Обчислення критерію Кульбака-Лейблера між двома розподілами.
-    def kullback_leibler_divergence(self, p, q):
-        p = np.array(p)
-        q = np.array(q)
-        return np.sum(p * np.log(p / q))
-
-# Обчислення критерію Кульбака-Лейблера між двома розподілами.
-    def compute_kfe_kullback(self):
-        if self.base_class_index is None:
-            messagebox.showwarning("Warning", "Please select a base class first.")
-            return
-
-        base_distribution = np.mean(self.image_matrices[self.base_class_index], axis=0)  # Середнє базового класу
-        kfe_values = []
-
-        for i in range(self.num_classes):
-            if i != self.base_class_index:
-                current_distribution = np.mean(self.image_matrices[i], axis=0)  # Середнє поточного класу
-                kfe = self.kullback_leibler_divergence(current_distribution, base_distribution)
-                kfe_values.append(kfe)
-
-        # Виведення результатів
-        self.matrix_window.delete(1.0, tk.END)
-        for i, kfe in enumerate(kfe_values):
-            self.matrix_window.insert(tk.END,
-                                      f"KFE (Kullback) between class {self.class_names[i]} and base class: {kfe:.4f}\n")
-
-        messagebox.showinfo("Success", "KFE (Kullback) has been calculated.")
-
-# Обчислення КФЕ за інформаційним критерієм Шеннона.
-    def compute_kfe_shannon(self):
-        if self.base_class_index is None:
-            messagebox.showwarning("Warning", "Please select a base class first.")
-            return
-
-        base_distribution = np.mean(self.image_matrices[self.base_class_index], axis=0)  # Середнє базового класу
-        kfe_values = []
-
-        for i in range(self.num_classes):
-            if i != self.base_class_index:
-                current_distribution = np.mean(self.image_matrices[i], axis=0)  # Середнє поточного класу
-                p = current_distribution / np.sum(current_distribution)
-                q = base_distribution / np.sum(base_distribution)
-                kfe = -np.sum(p * np.log2(p)) + np.sum(p * np.log2(q))  # Критерій Шеннона
-                kfe_values.append(kfe)
-
-        # Виведення результатів
-        self.matrix_window.delete(1.0, tk.END)
-        for i, kfe in enumerate(kfe_values):
-            self.matrix_window.insert(tk.END,
-                                      f"KFE (Shannon) between class {self.class_names[i]} and base class: {kfe:.4f}\n")
-
-        messagebox.showinfo("Success", "KFE (Shannon) has been calculated.")
-
-# Оптимізація радіуса контейнера для кожного класу
-    def optimize_radius(self):
-        self.optimal_radii = []
-        DO = []  # Оптимальні геометричні параметри
-        EM = []  # Інформаційні критерії
-        A, B, D1, D2 = [], [], [], []  # Точнісні характеристики
-
-        for i in range(self.num_classes):
-            radius = np.std(self.image_matrices[i])  # Початкове припущення для радіуса
-            optimal_radius = self.find_optimal_radius(i, radius)
-            self.optimal_radii.append(optimal_radius)
-            DO.append(optimal_radius)
-            EM.append(self.compute_kfe_kullback())  # Використання критерію Кульбака як критерій оптимізації
-            # Точнісні характеристики (приклади):
-            A.append(1 - optimal_radius)  # Спрощено для прикладу
-            B.append(optimal_radius)
-            D1.append(optimal_radius * 0.9)  # Спрощено
-            D2.append(optimal_radius * 0.8)  # Спрощено
-
-        # Виведення результатів
-        self.matrix_window.delete(1.0, tk.END)
-        self.matrix_window.insert(tk.END, f"DO (Optimal Radii): {DO}\n")
-        self.matrix_window.insert(tk.END, f"EM (Information Criteria): {EM}\n")
-        self.matrix_window.insert(tk.END, f"A: {A}\nB: {B}\nD1: {D1}\nD2: {D2}\n")
-
-        messagebox.showinfo("Success", "Radius optimization completed.")
-
-    def find_optimal_radius(self, class_idx, initial_radius):
-        """Алгоритм для знаходження оптимального радіуса контейнера."""
-        # Спрощена оптимізація: можна використовувати метод градієнтного спуску або інший числовий метод.
-        return initial_radius * 0.9  # Спрощено для прикладу
-
-    # Додаємо новий метод для розрахунку робочої області
-    def calculate_working_area(self, radii, kfe_values):
-        """Розрахунок робочої області на основі КФЕ та радіусів."""
-        # Знаходимо оптимальний радіус (максимум КФЕ)
-        optimal_idx = np.argmax(kfe_values)
-        optimal_radius = radii[optimal_idx]
-
-        # Визначаємо межі робочої області
-        # Використовуємо 80% від максимального значення КФЕ як поріг
-        threshold = 0.8 * max(kfe_values)
-        working_area_mask = kfe_values >= threshold
-
-        # Знаходимо межі робочої області
-        working_area_start = radii[np.where(working_area_mask)[0][0]]
-        working_area_end = radii[np.where(working_area_mask)[0][-1]]
-
-        return optimal_radius, working_area_start, working_area_end
-
-    # Оновлюємо метод plot_kfe_vs_radius
-    def plot_kfe_vs_radius(self):
-        """Побудова графіка залежності КФЕ від радіуса контейнера з робочою областю."""
-        if not self.optimal_radii:
-            messagebox.showwarning("Warning", "Please optimize the radius first.")
-            return
-
-        self.clear_canvas()
-
-        # Створюємо графік
-        fig = Figure(figsize=(10, 6), dpi=100)
-        ax = fig.add_subplot(111)
-
-        # Генеруємо дані для графіка
-        radii = np.linspace(0.1, max(self.optimal_radii) * 1.5, 100)
-        kfe_values = [self.compute_kfe_for_radius(radius) for radius in radii]
-
-        # Розраховуємо робочу область
-        optimal_radius, work_area_start, work_area_end = self.calculate_working_area(radii, kfe_values)
-
-        # Побудова основного графіка
-        ax.plot(radii, kfe_values, 'b-', label='КФЕ')
-
-        # Відображення робочої області
-        ax.axvspan(work_area_start, work_area_end, alpha=0.2, color='green', label='Робоча область')
-
-        # Відображення оптимального радіусу
-        ax.axvline(x=optimal_radius, color='r', linestyle='--', label='Оптимальний радіус')
-
-        # Налаштування графіка
-        ax.set_xlabel('Радіус контейнера')
-        ax.set_ylabel('Критерій функціональної ефективності')
-        ax.set_title('Залежність КФЕ від радіусу контейнера')
-        ax.grid(True)
-        ax.legend()
-
-        # Відображення графіка
-        canvas = FigureCanvasTkAgg(fig, master=self.image_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-    def plot_sk_map(self):
-        """Відображення розподілу реалізацій між поточним класом і його найближчим сусідом з оптимальними радіусами."""
-        if not self.SK or not self.SK_PARA:
-            messagebox.showwarning("Warning", "Please calculate coding distances first.")
-            return
-
-        self.clear_canvas()
-
-        fig = Figure(figsize=(10, 6), dpi=100)
-        ax = fig.add_subplot(111)
-
-        # Відображення реалізацій
-        num_realizations_current = len(self.SK[0][0])
-        num_realizations_neighbor = len(self.SK_PARA[0][0])
-
-        x_current_class = np.arange(num_realizations_current)
-        x_nearest_class = np.arange(num_realizations_neighbor)
-
-        # Відображення реалізацій з SK_PARA
-        scatter_current = ax.scatter(x_current_class, self.SK_PARA[0][0],
-                                     color='red', label='Поточний клас')
-        scatter_neighbor = ax.scatter(x_nearest_class, self.SK_PARA[1][0],
-                                      color='blue', label='Сусідній клас')
-
-        # Додавання оптимальних радіусів контейнерів
-        if hasattr(self, 'optimal_radii') and self.optimal_radii:
-            for i, radius in enumerate(self.optimal_radii):
-                ax.axhline(y=radius, color=['red', 'blue'][i % 2],
-                           linestyle='--',
-                           label=f'Оптимальний радіус класу {i + 1}')
-
-        # Налаштування графіка
-        ax.set_xlabel('Індекс реалізації')
-        ax.set_ylabel('Відстань')
-        ax.set_title('Розподіл реалізацій з оптимальними радіусами')
-        ax.legend()
-        ax.grid(True)
-
-        # Відображення графіка
-        canvas = FigureCanvasTkAgg(fig, master=self.image_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-    def compute_kfe_for_radius(self, radius):
-        """Допоміжна функція для обчислення КФЕ при заданому радіусі контейнера."""
-        # Спрощена версія: використовуємо середнє значення як параметр.
-        # Ви можете використати повну модель для розрахунків.
-        return np.exp(-radius)  # Спрощено для прикладу
+        # messagebox.showinfo("Успіх", "Відстані були обчислені та відображені.")
 
 if __name__ == "__main__":
     root = tk.Tk()
