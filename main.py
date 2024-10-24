@@ -606,7 +606,6 @@ class ImageLoaderApp:
             (2 - D1 - D2) * np.log2((2 - D1 - D2) / (D1 + D2))
         return E
 
-
 # Відображає значення критерію Кульбака
     def display_kfe_kullback(self):
 
@@ -740,7 +739,6 @@ class ImageLoaderApp:
 
 # Оптимізує радіус контейнера та відображає результати
     def display_optimize_radius(self):
-
         self.clear_canvas()  # Очищуємо попередній графік
 
         if not hasattr(self, 'SK') or not self.SK:
@@ -791,11 +789,25 @@ class ImageLoaderApp:
 
             # Побудова 3D графіка
             ax = fig.add_subplot(1, self.num_classes, i + 1, projection='3d')  # Створення 3D осей
-            ax.plot(result['radius_values'], result['criterion_values'], result['d1_values'], 'b-', label='Criterion')
-            ax.plot(result['radius_values'], result['d2_values'], result['criterion_values'], 'r--', label='D2')
 
-            if result['optimal_radius']:
-                ax.axvline(x=result['optimal_radius'], color='k', linestyle=':', label='Optimal radius')
+            radius_values = result['radius_values']
+            criterion_values = result['criterion_values']
+            d1_values = result['d1_values']
+            d2_values = result['d2_values']
+
+            # Перевіряємо, чи кількість елементів збігається для побудови
+            if len(d1_values) == len(radius_values) == len(criterion_values) and len(d2_values) == len(d1_values):
+                # Побудова графіка для D1
+                ax.plot(radius_values, criterion_values, d1_values, 'b-', label='D1')
+
+                # Побудова графіка для D2
+                ax.plot(radius_values, criterion_values, d2_values, 'r--', label='D2')
+
+                # Додавання оптимального радіуса
+                if result['optimal_radius']:
+                    ax.axvline(x=result['optimal_radius'], color='k', linestyle=':', label='Optimal radius')
+            else:
+                self.matrix_window.insert(tk.END, "Error: Mismatch in data lengths for plotting.\n")
 
             ax.set_title(f'Class {self.class_names[i]}')
             ax.set_xlabel('Radius')
