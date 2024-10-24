@@ -216,7 +216,7 @@ class ImageLoaderApp:
         else:
             self.info_label.config(text=f"All images have the same dimensions: {width}x{height}")
 
-#Відображає зображення у вікні.
+# Відображає зображення у вікні.
     def display_images(self):
         for widget in self.image_frame.winfo_children():
             widget.destroy()
@@ -231,7 +231,7 @@ class ImageLoaderApp:
             label.image = img_tk  # Збереження посилання для уникнення видалення
             label.pack(side=tk.LEFT)
 
-#Виводить матриці пікселів зображень.
+# Виводить матриці пікселів зображень.
     def show_matrices(self):
         if not self.image_matrices:
             messagebox.showwarning("Warning", "No image matrices available.")
@@ -258,7 +258,7 @@ class ImageLoaderApp:
             self.matrix_window.insert(tk.END, f"Matrix for image {i + 1} ({self.class_names[i]}):\n")
             self.matrix_window.insert(tk.END, f"{matrix}\n\n")
 
-#Показує бінарні зображення.
+# Показує бінарні зображення.
     def show_binary_images(self):
         if not self.binary_matrices:
             messagebox.showwarning("Warning", "No binary matrices available.")
@@ -295,7 +295,7 @@ class ImageLoaderApp:
         for widget in self.image_frame.winfo_children():
             widget.destroy()
 
-#Будує графік середніх значень пікселів.
+# Будує графік середніх значень пікселів.
     def plot_expectation_vector(self):
         self.clear_canvas()  # Очищення фрейму перед побудовою графіка
 
@@ -340,7 +340,7 @@ class ImageLoaderApp:
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-#Відображає систему допусків для кожного класу.
+# Відображає систему допусків для кожного класу.
     def plot_tolerance_system(self):
         if self.base_class_index is None:
             messagebox.showwarning("Warning", "Please select a base class first.")
@@ -737,7 +737,7 @@ class ImageLoaderApp:
             'd2_values': d2_values
         }
 
-# Оптимізує радіус контейнера та відображає результати
+# Відображає радіус контейнера та  результати
     def display_optimize_radius(self):
         self.clear_canvas()  # Очищуємо попередній графік
 
@@ -815,6 +815,9 @@ class ImageLoaderApp:
             ax.set_zlabel('D1/D2 values')
             ax.legend()
             ax.grid(True)
+
+            # Зміна перспективи - для того, щоб вісь Z була внизу
+            ax.view_init(elev=30, azim=240)  # Налаштування точки зору: змінюємо кут огляду
 
         # Відображення графіків
         for widget in self.image_frame.winfo_children():
