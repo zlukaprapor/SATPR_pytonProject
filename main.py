@@ -30,7 +30,9 @@ class ImageLoaderApp:
         self.delta = 10  # Значення за замовчуванням для кроку дельта
         self.SK = []  # Ініціалізація порожніх масивів
         self.SK_PARA = []  # Ініціалізація порожніх масивів
-        self.training_matrices = []  # Тут будуть зберігатися навчальні матриці
+        self.training_matrices = []
+        self.exam_matrices = []
+        self.recognition_results = []
 
         # Створення фреймів для кращої організації
         self.top_frame = tk.Frame(root, pady=10)
@@ -109,7 +111,15 @@ class ImageLoaderApp:
         self.optimize_radius_button.pack(side=tk.LEFT, padx=5)
 
         ####################################################
+        self.load_button = tk.Button(self.middle_frame_three, text="Load Training Images", command=self.load_images_exam)
+        self.load_button.pack(side=tk.LEFT, padx=5)
 
+        self.exam_button = tk.Button(self.middle_frame_three, text="Run Exam", command=self.run_exam, state=tk.DISABLED)
+        self.exam_button.pack(side=tk.LEFT, padx=5)
+
+        self.result_button = tk.Button(self.middle_frame_three, text="Calculate Recognition Quality", command=self.calculate_quality,
+                                       state=tk.DISABLED)
+        self.result_button.pack(side=tk.LEFT, padx=5)
         ###################################################
 
         # Нижній фрейм (відображення зображень та текстові поля)
@@ -839,7 +849,79 @@ class ImageLoaderApp:
 
 ############################################################################################
 # Код екзамену
+    def load_images_exam(self):
+        # Завдання 1: Формування екзаменаційної матриці
+        try:
+            self.num_classes = int(self.class_entry.get())
+        except ValueError:
+            messagebox.showerror("Error", "Введіть коректну кількість класів")
+            return
 
+        self.training_matrices = []
+        for i in range(self.num_classes):
+            file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.bmp;*.jpg;*.jpeg")])
+            if file_path:
+                img = Image.open(file_path).convert("L")
+                img_array = np.array(img)
+                self.training_matrices.append(img_array)
+
+        # Створення екзаменаційної матриці з деформаціями
+        self.exam_matrices = [self.deform_matrix(matrix) for matrix in self.training_matrices]
+        self.exam_button.config(state=tk.NORMAL)
+
+
+    def deform_matrix(self, matrix):
+        # Додавання випадкового шуму для деформації
+        noise = np.random.normal(0, 0.01, matrix.shape)
+        return matrix + noise
+
+    def run_exam(self):
+        # Завдання 2: Алгоритм екзамену
+        self.recognition_results = []
+
+        # Крок 1: Лічильник класів
+        for m in range(self.num_classes):  # m <= M
+            # Крок 2: Лічильник реалізацій
+            for exam_matrix in self.exam_matrices:  # j <= n
+                # Крок 3: Обчислення кодової відстані
+                distances = []
+                for train_matrix in self.training_matrices:
+                    distance = euclidean(exam_matrix.flatten(), train_matrix.flatten())
+                    distances.append(distance)
+
+                # Крок 4: Обчислення функції належності
+                threshold = 10  # порогове значення
+                memberships = [self.membership_function(d, threshold) for d in distances]
+
+                # Крок 7: Визначення класу
+                max_membership = max(memberships)
+                if max_membership > 0.5:  # c - порогове значення
+                    recognized_class = memberships.index(max_membership)
+                else:
+                    recognized_class = "undefined"
+
+                self.recognition_results.append(recognized_class)
+
+        self.result_button.config(state=tk.NORMAL)
+
+
+    def membership_function(self, distance, threshold):
+        # Крок 4: Функція належності
+        return math.exp(-distance / threshold)
+
+
+    def calculate_quality(self):
+        # Завдання 4: Визначення якості розпізнавання
+        correct = sum(1 for i, result in enumerate(self.recognition_results) if result == i)
+        incorrect = len(self.recognition_results) - correct
+
+        result_text = f"""
+        Результати екзамену:
+        Правильно розпізнано: {correct}
+        Неправильно розпізнано: {incorrect}
+        Загальна точність: {(correct / len(self.recognition_results) * 100):.2f}%
+        """
+        messagebox.showinfo("Результати", result_text)
 ############################################################################################
 if __name__ == "__main__":
     root = tk.Tk()
