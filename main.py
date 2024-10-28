@@ -777,14 +777,16 @@ class ImageLoaderApp:
             )
 
             # Виведення результатів
-            self.matrix_window.insert(tk.END, f"\nOptimization results for class {self.class_names[i]}:\n")
+            # Виведення результатів з критерієм
+            self.matrix_window.insert(tk.END,f"\nOptimization results for class {self.class_names[i]} ({criterion.capitalize()} criterion):\n")
             self.matrix_window.insert(tk.END, f"Optimal radius: {result['optimal_radius']:.3f}\n")
+
             if result['optimal_metrics']:
                 D1, alpha, beta, D2 = result['optimal_metrics']
-                self.matrix_window.insert(tk.END, f"D1: {D1:.3f}\n")
-                self.matrix_window.insert(tk.END, f"α: {alpha:.3f}\n")
-                self.matrix_window.insert(tk.END, f"β: {beta:.3f}\n")
-                self.matrix_window.insert(tk.END, f"D2: {D2:.3f}\n")
+                self.matrix_window.insert(tk.END, f"D1 (TP Rate): {D1:.3f}\n")
+                self.matrix_window.insert(tk.END, f"α (False Negative Rate): {alpha:.3f}\n")
+                self.matrix_window.insert(tk.END, f"β (False Positive Rate): {beta:.3f}\n")
+                self.matrix_window.insert(tk.END, f"D2 (TN Rate): {D2:.3f}\n")
             self.matrix_window.insert(tk.END, "-" * 50 + "\n")
 
             # Побудова 3D графіка
