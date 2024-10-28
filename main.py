@@ -41,6 +41,9 @@ class ImageLoaderApp:
         self.middle_frame_two = tk.Frame(root, pady=10)
         self.middle_frame_two.pack(side=tk.TOP, fill=tk.X)
 
+        self.middle_frame_three = tk.Frame(root, pady=10)
+        self.middle_frame_three.pack(side=tk.TOP, fill=tk.X)
+
         self.bottom_frame = tk.Frame(root, pady=10)
         self.bottom_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
@@ -103,6 +106,9 @@ class ImageLoaderApp:
         self.optimize_radius_button = tk.Button(self.middle_frame_two, text="Optimize Radius",
                                                 command=self.display_optimize_radius, state=tk.DISABLED)
         self.optimize_radius_button.pack(side=tk.LEFT, padx=5)
+
+        self.exam_button = tk.Button(self.middle_frame_three, text="Start Exam Process", command=self.start_exam_process)
+        self.exam_button.pack(side=tk.LEFT, padx=5)
 
         # Нижній фрейм (відображення зображень та текстові поля)
         self.image_frame = tk.Frame(self.bottom_frame)
@@ -828,6 +834,73 @@ class ImageLoaderApp:
         canvas = FigureCanvasTkAgg(fig, master=self.image_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+# Cтворить екзаменаційної матриці шляхом деформації кожного зображення
+    def create_exam_matrix(self):
+        self.exam_matrices = []
+        for matrix in self.image_matrices:
+            # Деформуємо матрицю, додаючи випадкові зміни
+            exam_matrix = matrix + np.random.randint(-5, 5, size=matrix.shape)
+            self.exam_matrices.append(np.clip(exam_matrix, 0, 255))  # Обмежуємо значення від 0 до 255
+        messagebox.showinfo("Success", "Exam matrix has been created based on deformed training matrices.")
+
+# Виконує основний екзамен, порівнюючи кожну реалізацію з класами, та зберігати кількість правильних та неправильних розпізнавань.
+    def perform_exam(self):
+        if not hasattr(self, 'exam_matrices'):
+            messagebox.showwarning("Warning", "Please create the exam matrix first.")
+            return
+
+        correct_count = 0
+        incorrect_count = 0
+
+        for i, exam_matrix in enumerate(self.exam_matrices):
+            # Розраховуємо кодові відстані до кожного класу
+            current_distances = [np.linalg.norm(exam_matrix - class_matrix) for class_matrix in self.image_matrices]
+            predicted_class = np.argmin(current_distances)  # Вибір класу з мінімальною відстанню
+
+            if predicted_class == i:
+                correct_count += 1
+            else:
+                incorrect_count += 1
+
+        # Виведення результатів
+        self.matrix_window.insert(tk.END, f"Correctly recognized: {correct_count}\n")
+        self.matrix_window.insert(tk.END, f"Incorrectly recognized: {incorrect_count}\n")
+
+# Підрахує кількість правильно та неправильно розпізнаних реалізацій у екзаменаційній матриці
+    def display_final_recognition_quality(self):
+        if not hasattr(self, 'exam_matrices'):
+            messagebox.showwarning("Warning", "Please perform the exam first.")
+            return
+
+        correct_count = 0
+        incorrect_count = 0
+
+        for i, exam_matrix in enumerate(self.exam_matrices):
+            # Розрахунок кодових відстаней до кожного класу
+            distances = [np.linalg.norm(exam_matrix - class_matrix) for class_matrix in self.image_matrices]
+            predicted_class = np.argmin(distances)  # Вибір класу з мінімальною відстанню
+
+            # Порівняння передбаченого класу з реальним
+            if predicted_class == i:
+                correct_count += 1
+            else:
+                incorrect_count += 1
+
+        # Виведення результатів у вікно
+        self.matrix_window.delete(1.0, tk.END)  # Очищення текстового поля
+        self.matrix_window.insert(tk.END, f"Correctly recognized: {correct_count}\n")
+        self.matrix_window.insert(tk.END, f"Incorrectly recognized: {incorrect_count}\n")
+        self.matrix_window.insert(tk.END,
+                                f"Recognition accuracy: {correct_count / (correct_count + incorrect_count):.2%}\n")
+
+    # Послідовно викликатиме всі необхідні кроки
+    def start_exam_process(self):
+        self.load_images()  # Завантаження зображень
+        self.check_image_sizes()  # Перевірка розмірів зображень
+        self.create_exam_matrix()  # Формування екзаменаційної матриці
+        self.perform_exam()  # Виконання екзамену
+        self.display_final_recognition_quality()  # Виведення якості розпізнавання
 
 if __name__ == "__main__":
     root = tk.Tk()
