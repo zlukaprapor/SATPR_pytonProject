@@ -50,7 +50,6 @@ class ImageLoaderApp:
         self.bottom_frame = tk.Frame(root, pady=10)
         self.bottom_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        # Верхній фрейм (введення класів і кнопки)
         self.class_label = tk.Label(self.top_frame, text="Enter number of classes:")
         self.class_label.pack(side=tk.LEFT, padx=5)
 
@@ -60,7 +59,6 @@ class ImageLoaderApp:
         self.load_button = tk.Button(self.top_frame, text="Step 1 -> Load Images", command=self.load_images)
         self.load_button.pack(side=tk.LEFT, padx=5)
 
-        # Середній фрейм (кнопки дій)
         self.check_button = tk.Button(self.middle_frame, text="Step 2 -> Check Image Sizes",
                                       command=self.check_image_sizes, state=tk.DISABLED)
         self.check_button.pack(side=tk.LEFT, padx=5)
@@ -93,7 +91,6 @@ class ImageLoaderApp:
                                          command=self.compute_distances_from_reference, state=tk.DISABLED)
         self.distance_button.pack(side=tk.LEFT, padx=5)
 
-        # Додаємо кнопку для обчислення точнісних характеристик
         self.accuracy_button = tk.Button(self.middle_frame_two, text="Compute Accuracy Metrics",
                                       command=self.display_accuracy_metrics, state=tk.DISABLED)
         self.accuracy_button.pack(side=tk.LEFT, padx=5)
@@ -110,26 +107,21 @@ class ImageLoaderApp:
                                                 command=self.display_optimize_radius, state=tk.DISABLED)
         self.optimize_radius_button.pack(side=tk.LEFT, padx=5)
 
-        ####################################################
-        self.load_button = tk.Button(self.middle_frame_three, text="Load Training Images", command=self.load_images_exam)
+        self.load_button = tk.Button(self.middle_frame_three, text="Load Exam Images", command=self.load_images_exam)
         self.load_button.pack(side=tk.LEFT, padx=5)
 
-        self.exam_button = tk.Button(self.middle_frame_three, text="Run Exam", command=self.run_exam, state=tk.DISABLED)
+        self.exam_button = tk.Button(self.middle_frame_three, text="Run Exam", command=self.run_exam, state=tk.NORMAL)
         self.exam_button.pack(side=tk.LEFT, padx=5)
 
-        self.result_button = tk.Button(self.middle_frame_three, text="Calculate Recognition Quality", command=self.calculate_quality,
-                                       state=tk.DISABLED)
+        self.result_button = tk.Button(self.middle_frame_three, text="Calculate Recognition Quality", command=self.calculate_quality, state=tk.NORMAL)
         self.result_button.pack(side=tk.LEFT, padx=5)
-        ###################################################
 
-        # Нижній фрейм (відображення зображень та текстові поля)
         self.image_frame = tk.Frame(self.bottom_frame)
         self.image_frame.pack(side=tk.LEFT, padx=10)
 
         self.info_label = tk.Label(self.bottom_frame, text="")
         self.info_label.pack(side=tk.TOP, padx=5)
 
-        # Віджет для відображення матриць
         self.matrix_window = scrolledtext.ScrolledText(self.bottom_frame, width=60, height=20, wrap=tk.WORD)
         self.matrix_window.pack(side=tk.LEFT, padx=10)
 
@@ -847,82 +839,129 @@ class ImageLoaderApp:
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-############################################################################################
+##############################################
 # Код екзамену
+# 1:Формування екзаменаційної матриці
+    def generate_exam_matrix(self):
+        self.exam_matrices = []
+        for matrix in self.training_matrices:
+            # Деформація матриць шляхом додавання випадкового шуму
+            noisy_matrix = matrix + np.random.normal(0, 5, matrix.shape)
+            self.exam_matrices.append(noisy_matrix)
+
+        if not self.exam_matrices:
+            messagebox.showerror("Error", "Failed to generate exam matrices.")
+        else:
+            messagebox.showinfo("Success", f"Exam matrix has been generated with deformations. Total matrices: {len(self.exam_matrices)}")
+
+# 2:Алгоритм екзамену інтелектуальної системи
+    def run_exam(self):
+        # Ініціалізація результатів розпізнавання
+        self.recognition_results = []
+        recognition_counters = {class_name: 0 for class_name in self.class_names}
+
+        # Перевірка, що екзаменаційні матриці завантажені
+        if not self.exam_matrices:
+            messagebox.showerror("Error", "No exam matrices available. Please load exam images first.")
+            return
+
+        for exam_matrix in self.exam_matrices:
+            distances = []
+            for i, ref_matrix in enumerate(self.training_matrices):
+                # Обчислення кодової відстані
+                distance = euclidean(exam_matrix.flatten(), ref_matrix.flatten())
+                distances.append((self.class_names[i], distance))
+
+            # Визначення класу з мінімальною відстанню
+            best_match = min(distances, key=lambda x: x[1])
+            recognition_counters[best_match[0]] += 1
+
+            # Додавання результату розпізнавання
+            self.recognition_results.append(best_match[0])
+
+        # Перевірка чи результати розпізнавання відповідають кількості класів
+        if len(self.recognition_results) != len(self.class_names):
+            messagebox.showerror("Error", "Recognition results do not match the number of classes.")
+        else:
+            messagebox.showinfo("Success", "Exam has been completed. Results are available.")
+
+        # Виведення результатів розпізнавання після завершення екзамену
+        result_message = "\n".join(
+            f"Image {i + 1}: Recognized as '{result}'" for i, result in enumerate(self.recognition_results))
+        messagebox.showinfo("Recognition Results", result_message)
+
+# 3: Оцінка результатів розпізнавання
+    def calculate_quality(self):
+        # Перевірка чи розпізнавальні результати мають той самий розмір, що і кількість класів
+        if len(self.recognition_results) != len(self.class_names):
+            messagebox.showerror("Error", "Recognition results do not match the number of classes.")
+            return
+
+        # Обчислення кількості правильно і неправильно розпізнаних реалізацій
+        correct_count = sum(1 for i, class_name in enumerate(self.class_names) if self.recognition_results[i] == class_name)
+        total_count = len(self.recognition_results)
+        incorrect_count = total_count - correct_count
+        accuracy = (correct_count / total_count) * 100 if total_count > 0 else 0
+
+        # Відображення результату
+        result_message = (f"Total: {total_count}\n"
+                          f"Correct: {correct_count}\n"
+                          f"Incorrect: {incorrect_count}\n"
+                          f"Accuracy: {accuracy:.2f}%")
+        messagebox.showinfo("Recognition Quality", result_message)
+
+# 4: Завантаження зображень для екзамену
     def load_images_exam(self):
-        # Завдання 1: Формування екзаменаційної матриці
+        """
+        Завантаження зображень для екзамену.
+        Кожне завантажене зображення перетворюється у матрицю відтінків сірого
+        і додається до списку екзаменаційних матриць. Після завантаження
+        викликається метод для генерації екзаменаційної матриці.
+        """
+        self.exam_matrices = []
+
+        # Введення кількості класів
         try:
             self.num_classes = int(self.class_entry.get())
         except ValueError:
-            messagebox.showerror("Error", "Введіть коректну кількість класів")
+            messagebox.showerror("Input Error", "Please enter a valid number of classes.")
             return
 
-        self.training_matrices = []
+        if self.num_classes <= 0:
+            messagebox.showerror("Input Error", "Number of classes must be greater than 0.")
+            return
+
+        # Ініціалізація списків для зображень і матриць
+        self.images = []
+        self.image_matrices = []
+        self.class_names = []
+
         for i in range(self.num_classes):
+            class_name = simpledialog.askstring("Class Name", f"Enter name for class {i + 1}:")
+            if not class_name:
+                messagebox.showerror("Input Error", "Class name cannot be empty.")
+                return
+
+            self.class_names.append(class_name)
             file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.bmp;*.jpg;*.jpeg")])
             if file_path:
-                img = Image.open(file_path).convert("L")
+                img = Image.open(file_path).convert("L")  # Перетворення на відтінки сірого
+                self.images.append(img)
                 img_array = np.array(img)
-                self.training_matrices.append(img_array)
+                self.image_matrices.append(img_array)
+            else:
+                messagebox.showwarning("Warning", "Image selection cancelled.")
+                return
 
-        # Створення екзаменаційної матриці з деформаціями
-        self.exam_matrices = [self.deform_matrix(matrix) for matrix in self.training_matrices]
-        self.exam_button.config(state=tk.NORMAL)
+        if len(self.images) != self.num_classes:
+            messagebox.showerror("Input Error", "Number of loaded images does not match the number of classes.")
+            return
 
+        # Збереження завантажених матриць як тренувальних
+        self.training_matrices = self.image_matrices
+        self.generate_exam_matrix()  # Формування екзаменаційної матриці після завантаження
 
-    def deform_matrix(self, matrix):
-        # Додавання випадкового шуму для деформації
-        noise = np.random.normal(0, 0.01, matrix.shape)
-        return matrix + noise
-
-    def run_exam(self):
-        # Завдання 2: Алгоритм екзамену
-        self.recognition_results = []
-
-        # Крок 1: Лічильник класів
-        for m in range(self.num_classes):  # m <= M
-            # Крок 2: Лічильник реалізацій
-            for exam_matrix in self.exam_matrices:  # j <= n
-                # Крок 3: Обчислення кодової відстані
-                distances = []
-                for train_matrix in self.training_matrices:
-                    distance = euclidean(exam_matrix.flatten(), train_matrix.flatten())
-                    distances.append(distance)
-
-                # Крок 4: Обчислення функції належності
-                threshold = 10  # порогове значення
-                memberships = [self.membership_function(d, threshold) for d in distances]
-
-                # Крок 7: Визначення класу
-                max_membership = max(memberships)
-                if max_membership > 0.5:  # c - порогове значення
-                    recognized_class = memberships.index(max_membership)
-                else:
-                    recognized_class = "undefined"
-
-                self.recognition_results.append(recognized_class)
-
-        self.result_button.config(state=tk.NORMAL)
-
-
-    def membership_function(self, distance, threshold):
-        # Крок 4: Функція належності
-        return math.exp(-distance / threshold)
-
-
-    def calculate_quality(self):
-        # Завдання 4: Визначення якості розпізнавання
-        correct = sum(1 for i, result in enumerate(self.recognition_results) if result == i)
-        incorrect = len(self.recognition_results) - correct
-
-        result_text = f"""
-        Результати екзамену:
-        Правильно розпізнано: {correct}
-        Неправильно розпізнано: {incorrect}
-        Загальна точність: {(correct / len(self.recognition_results) * 100):.2f}%
-        """
-        messagebox.showinfo("Результати", result_text)
-############################################################################################
+############################################
 if __name__ == "__main__":
     root = tk.Tk()
     app = ImageLoaderApp(root)
