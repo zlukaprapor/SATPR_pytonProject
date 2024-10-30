@@ -854,13 +854,12 @@ class ImageLoaderApp:
         else:
             messagebox.showinfo("Success", f"Exam matrix has been generated with deformations. Total matrices: {len(self.exam_matrices)}")
 
-# 2:Алгоритм екзамену інтелектуальної системи
+# 2: Алгоритм екзамену інтелектуальної системи
     def run_exam(self):
-        # Ініціалізація результатів розпізнавання
         self.recognition_results = []
+        self.membership_values = []  # Додаємо збереження значень функції належності
         recognition_counters = {class_name: 0 for class_name in self.class_names}
 
-        # Перевірка, що екзаменаційні матриці завантажені
         if not self.exam_matrices:
             messagebox.showerror("Error", "No exam matrices available. Please load exam images first.")
             return
@@ -868,29 +867,39 @@ class ImageLoaderApp:
         for exam_matrix in self.exam_matrices:
             distances = []
             for i, ref_matrix in enumerate(self.training_matrices):
-                # Обчислення кодової відстані
+                # Обчислення евклідової відстані
                 distance = euclidean(exam_matrix.flatten(), ref_matrix.flatten())
                 distances.append((self.class_names[i], distance))
 
-            # Визначення класу з мінімальною відстанню
-            best_match = min(distances, key=lambda x: x[1])
-            recognition_counters[best_match[0]] += 1
+            # Знаходження максимальної допустимої відстані для нормалізації (d_m^*)
+            max_distance = max(distance for _, distance in distances)
 
-            # Додавання результату розпізнавання
+            # Розрахунок функції належності для кожного класу
+            membership_values = {
+                class_name: 1 - (distance / max_distance)
+                for class_name, distance in distances
+            }
+
+            # Зберігаємо значення функції належності
+            self.membership_values.append(membership_values)
+
+            # Визначення класу з максимальним значенням функції належності
+            best_match = max(membership_values.items(), key=lambda x: x[1])
+            recognition_counters[best_match[0]] += 1
             self.recognition_results.append(best_match[0])
 
-        # Перевірка чи результати розпізнавання відповідають кількості класів
-        if len(self.recognition_results) != len(self.class_names):
-            messagebox.showerror("Error", "Recognition results do not match the number of classes.")
-        else:
-            messagebox.showinfo("Success", "Exam has been completed. Results are available.")
+        # Виведення результатів розпізнавання та значень функції належності
+        result_message = ""
+        for i, (result, memberships) in enumerate(zip(self.recognition_results, self.membership_values)):
+            result_message += f"\nImage {i + 1}:\n"
+            result_message += f"Recognized as: '{result}'\n"
+            result_message += "Membership values:\n"
+            for class_name, value in memberships.items():
+                result_message += f"  {class_name}: {value:.4f}\n"
 
-        # Виведення результатів розпізнавання після завершення екзамену
-        result_message = "\n".join(
-            f"Image {i + 1}: Recognized as '{result}'" for i, result in enumerate(self.recognition_results))
         messagebox.showinfo("Recognition Results", result_message)
 
-# 3: Оцінка результатів розпізнавання
+    # 3: Оцінка результатів розпізнавання
     def calculate_quality(self):
         # Перевірка чи розпізнавальні результати мають той самий розмір, що і кількість класів
         if len(self.recognition_results) != len(self.class_names):
