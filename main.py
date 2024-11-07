@@ -1,10 +1,9 @@
 import tkinter as tk
+import numpy as np
 from tkinter import filedialog, messagebox, simpledialog, scrolledtext
 from PIL import Image, ImageTk
-import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-import math
 from scipy.spatial.distance import euclidean
 
 class ImageLoaderApp:
@@ -46,6 +45,9 @@ class ImageLoaderApp:
 
         self.middle_frame_three = tk.Frame(root, pady=10)
         self.middle_frame_three.pack(side=tk.TOP, fill=tk.X)
+
+        self.middle_frame_four = tk.Frame(root, pady=10)
+        self.middle_frame_four.pack(side=tk.TOP, fill=tk.X)
 
         self.bottom_frame = tk.Frame(root, pady=10)
         self.bottom_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
@@ -115,6 +117,9 @@ class ImageLoaderApp:
 
         self.result_button = tk.Button(self.middle_frame_three, text="Calculate Recognition Quality", command=self.calculate_quality, state=tk.NORMAL)
         self.result_button.pack(side=tk.LEFT, padx=5)
+
+       # self.result_button = tk.Button(self.middle_frame_four, text="Run Optimization and Plot", command=self.run_optimization_and_plot, state=tk.NORMAL)
+       # self.result_button.pack(side=tk.LEFT, padx=5)
 
         self.image_frame = tk.Frame(self.bottom_frame)
         self.image_frame.pack(side=tk.LEFT, padx=10)
