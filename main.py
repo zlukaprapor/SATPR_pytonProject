@@ -4,7 +4,6 @@ from PIL import Image, ImageTk
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-import math
 from scipy.spatial.distance import euclidean
 
 class ImageLoaderApp:
@@ -114,6 +113,10 @@ class ImageLoaderApp:
         self.exam_button.pack(side=tk.LEFT, padx=5)
 
         self.result_button = tk.Button(self.middle_frame_three, text="Calculate Recognition Quality", command=self.calculate_quality, state=tk.NORMAL)
+        self.result_button.pack(side=tk.LEFT, padx=5)
+
+        self.result_button = tk.Button(self.middle_frame_three, text="START",
+                                       command=self.run_optimization_task, state=tk.NORMAL)
         self.result_button.pack(side=tk.LEFT, padx=5)
 
         self.image_frame = tk.Frame(self.bottom_frame)
@@ -971,6 +974,73 @@ class ImageLoaderApp:
         self.generate_exam_matrix()  # Формування екзаменаційної матриці після завантаження
 
 ############################################
+#Paralel
+#Паралельна оптимізація системи контрольних допусків для всіх ознак одночасно.
+#Виконує розрахунок оптимального радіуса контейнера та максимізації значення критерію Кульбака або Шеннона.
+
+    def parallel_optimization(self):
+
+        max_radius = 100  # Максимальний радіус для обчислень
+        radius_values = np.linspace(0, max_radius, 50)  # Значення радіуса для графіка
+        criterion_values = []
+
+    # Параметри оптимізації для кожного радіуса
+        for radius in radius_values:
+            D1_total, D2_total = 0, 0
+
+        # Оптимізація для кожного класу
+            for i in range(self.num_classes):
+                current_class_distances = self.SK[i][0]
+                neighbor_class_distances = self.SK[i][1]
+
+            # Обчислення метрик точності для поточного радіуса
+                D1, alpha, beta, D2 = self.compute_accuracy_metrics(radius, current_class_distances, neighbor_class_distances)
+                D1_total += D1
+                D2_total += D2
+
+        # Середнє значення метрик для всіх класів
+            D1_avg = D1_total / self.num_classes
+            D2_avg = D2_total / self.num_classes
+
+        # Вибір критерію
+            criterion_value = self.compute_kfe_kullback(D1_avg,D2_avg) if self.criteria == "kullback" else self.compute_kfe_shannon(D1_avg, D2_avg)
+            criterion_values.append(criterion_value)
+
+    # Відображення результатів
+        self.plot_optimization(radius_values, criterion_values)
+
+#Побудова графіка залежності значення критерію від радіуса контейнера.
+    def plot_optimization(self, radius_values, criterion_values):
+
+        fig = Figure(figsize=(8, 6))
+        ax = fig.add_subplot(111)
+        ax.plot(radius_values, criterion_values, label=f'{self.criteria.capitalize()} Criterion')
+
+    # Налаштування графіка
+        ax.set_xlabel("Радіус контейнера")
+        ax.set_ylabel("Значення критерію")
+        ax.set_title(f"Оптимізація за критерієм {self.criteria.capitalize()}")
+        ax.legend()
+
+    # Відображення графіка в tkinter
+        for widget in self.image_frame.winfo_children():
+            widget.destroy()
+        canvas = FigureCanvasTkAgg(fig, master=self.image_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+#Запуск завдання оптимізації з вибором критерію.
+    def run_optimization_task(self):
+
+        self.criteria = simpledialog.askstring("Критерій оптимізації", "Введіть критерій (kullback/shannon):", initialvalue="kullback")
+
+        if self.criteria not in ['kullback', 'shannon']:
+            messagebox.showerror("Помилка", "Вибрано некоректний критерій.")
+            return
+
+        self.parallel_optimization()  # Виконати паралельну оптимізацію
+############################################
+
 if __name__ == "__main__":
     root = tk.Tk()
     app = ImageLoaderApp(root)
