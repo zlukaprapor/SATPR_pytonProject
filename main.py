@@ -1032,15 +1032,12 @@ class ImageLoaderApp:
 
 #Запуск завдання оптимізації з вибором критерію.
     def run_optimization_task(self):
-
         self.criteria = simpledialog.askstring("Критерій оптимізації", "Введіть критерій (kullback/shannon):", initialvalue="kullback")
-
         if self.criteria not in ['kullback', 'shannon']:
             messagebox.showerror("Помилка", "Вибрано некоректний критерій.")
             return
 
         self.parallel_optimization()  # Виконати паралельну оптимізацію
-############################################
 
 if __name__ == "__main__":
     root = tk.Tk()
