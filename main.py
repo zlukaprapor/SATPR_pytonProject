@@ -116,8 +116,8 @@ class ImageLoaderApp:
         self.result_button = tk.Button(self.middle_frame_three, text="Calculate Recognition Quality", command=self.calculate_quality, state=tk.NORMAL)
         self.result_button.pack(side=tk.LEFT, padx=5)
 
-        self.result_button = tk.Button(self.middle_frame_three, text="START",
-                                       command=self.run_optimization_task, state=tk.NORMAL)
+        self.result_button = tk.Button(self.middle_frame_two, text="START",
+                                       command=self.run_combined_optimization_task, state=tk.NORMAL)
         self.result_button.pack(side=tk.LEFT, padx=5)
 
         self.image_frame = tk.Frame(self.bottom_frame)
@@ -974,56 +974,117 @@ class ImageLoaderApp:
         self.training_matrices = self.image_matrices
         self.generate_exam_matrix()  # Формування екзаменаційної матриці після завантаження
 
-############################################
-#Paralel
-#Паралельна оптимізація системи контрольних допусків для всіх ознак одночасно.
-#Виконує розрахунок оптимального радіуса контейнера та максимізації значення критерію Кульбака або Шеннона.
-
+########
+# Paralel
+########
+# Паралельна оптимізація системи контрольних допусків для всіх ознак одночасно.
+# Виконує розрахунок оптимального радіуса контейнера та максимізації значення критерію Кульбака або Шеннона.
     def parallel_optimization(self):
-
-        max_radius = 100  # Максимальний радіус для обчислень
-        radius_values = np.linspace(0, max_radius, 50)  # Значення радіуса для графіка
+        max_radius = 150
+        radius_values = np.linspace(0, max_radius, 40)
         criterion_values = []
+        optimal_radius = None
+        max_kfe_value = -np.inf  # Змінна для зберігання максимального значення КФЕ
 
-    # Параметри оптимізації для кожного радіуса
         for radius in radius_values:
             D1_total, D2_total = 0, 0
 
-        # Оптимізація для кожного класу
             for i in range(self.num_classes):
                 current_class_distances = self.SK[i][0]
                 neighbor_class_distances = self.SK[i][1]
-
-            # Обчислення метрик точності для поточного радіуса
-                D1, alpha, beta, D2 = self.compute_accuracy_metrics(radius, current_class_distances, neighbor_class_distances)
+                D1, alpha, beta, D2 = self.compute_accuracy_metrics(radius, current_class_distances,
+                                                                    neighbor_class_distances)
                 D1_total += D1
                 D2_total += D2
 
-        # Середнє значення метрик для всіх класів
             D1_avg = D1_total / self.num_classes
             D2_avg = D2_total / self.num_classes
 
-        # Вибір критерію
-            criterion_value = self.compute_kfe_kullback(D1_avg,D2_avg) if self.criteria == "kullback" else self.compute_kfe_shannon(D1_avg, D2_avg)
+            criterion_value = self.compute_kfe_kullback(D1_avg,
+                                                        D2_avg) if self.criteria == "kullback" else self.compute_kfe_shannon(
+                D1_avg, D2_avg)
             criterion_values.append(criterion_value)
 
-    # Відображення результатів
-        self.plot_optimization(radius_values, criterion_values)
+            # Збереження оптимального значення радіуса
+            if criterion_value > max_kfe_value:
+                max_kfe_value = criterion_value
+                optimal_radius = radius
 
-#Побудова графіка залежності значення критерію від радіуса контейнера.
-    def plot_optimization(self, radius_values, criterion_values):
+        return radius_values, criterion_values, optimal_radius, max_kfe_value
 
-        fig = Figure(figsize=(8, 6))
+# Оптимізація ширини поля допусків (delta) для мінімізації помилок розпізнавання.
+# Обчислюється оптимальне значення delta, яке максимізує значення критерію Кульбака або Шеннона.
+    def optimize_delta(self):
+        max_delta = 100
+        delta_values = np.linspace(0, max_delta, 50)
+        criterion_values = []
+        optimal_delta = None
+        max_kfe_value = -np.inf  # Змінна для зберігання максимального значення КФЕ
+
+        for delta in delta_values:
+            self.delta = delta
+            D1_total, D2_total = 0, 0
+
+            for i in range(self.num_classes):
+                current_class_distances = self.SK[i][0]
+                neighbor_class_distances = self.SK[i][1]
+                D1, alpha, beta, D2 = self.compute_accuracy_metrics(self.delta, current_class_distances,
+                                                                    neighbor_class_distances)
+                D1_total += D1
+                D2_total += D2
+
+            D1_avg = D1_total / self.num_classes
+            D2_avg = D2_total / self.num_classes
+
+            criterion_value = self.compute_kfe_kullback(D1_avg,
+                                                        D2_avg) if self.criteria == "kullback" else self.compute_kfe_shannon(
+                D1_avg, D2_avg)
+            criterion_values.append(criterion_value)
+
+            # Збереження оптимального значення delta
+            if criterion_value > max_kfe_value:
+                max_kfe_value = criterion_value
+                optimal_delta = delta
+
+        return delta_values, criterion_values, optimal_delta, max_kfe_value
+
+# Обчислює точнісні характеристики для заданого значення delta або radius та відстаней класу.
+    def compute_accuracy_metrics(self, threshold, current_class_distances, neighbor_class_distances):
+
+        k1 = sum(1 for d in current_class_distances if d <= threshold)
+        k2 = sum(1 for d in neighbor_class_distances if d <= threshold)
+
+        D1 = k1 / len(current_class_distances) if current_class_distances else 0
+        alpha = 1 - D1
+        beta = k2 / len(neighbor_class_distances) if neighbor_class_distances else 0
+        D2 = 1 - beta
+        return D1, alpha, beta, D2
+
+# Функція для відображення обох графіків на одному полотні
+    def plot_combined_optimization(self):
+        radius_values, radius_criterion_values, optimal_radius, max_kfe_radius = self.parallel_optimization()
+        delta_values, delta_criterion_values, optimal_delta, max_kfe_delta = self.optimize_delta()
+
+        fig = Figure(figsize=(10, 6))
         ax = fig.add_subplot(111)
-        ax.plot(radius_values, criterion_values, label=f'{self.criteria.capitalize()} Criterion')
 
-    # Налаштування графіка
-        ax.set_xlabel("Радіус контейнера")
-        ax.set_ylabel("Значення критерію")
-        ax.set_title(f"Оптимізація за критерієм {self.criteria.capitalize()}")
-        ax.legend()
+        # Графік для radius
+        ax.plot(radius_values, radius_criterion_values, label="Radius Criterion", color='blue', linestyle='-',
+                marker='o', markersize=5)
+        ax.axvline(optimal_radius, color='blue', linestyle='--', label=f"Optimal Radius: {optimal_radius}")
 
-    # Відображення графіка в tkinter
+        # Графік для delta
+        ax.plot(delta_values, delta_criterion_values, label="Delta Criterion", color='red', linestyle='--', marker='x',
+                markersize=5)
+        ax.axvline(optimal_delta, color='red', linestyle='--', label=f"Optimal Delta: {optimal_delta}")
+
+        ax.set_xlabel("Значення параметра", fontsize=12)
+        ax.set_ylabel("Значення критерію", fontsize=12)
+        ax.set_title("Оптимізація за критеріями для radius і delta", fontsize=14)
+        ax.legend(loc="upper right", fontsize=10)
+        ax.grid(True, linestyle='--', alpha=0.6)
+
+        # Очищення та вивід нового графіка
         for widget in self.image_frame.winfo_children():
             widget.destroy()
         canvas = FigureCanvasTkAgg(fig, master=self.image_frame)
@@ -1031,13 +1092,25 @@ class ImageLoaderApp:
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
 #Запуск завдання оптимізації з вибором критерію.
-    def run_optimization_task(self):
-        self.criteria = simpledialog.askstring("Критерій оптимізації", "Введіть критерій (kullback/shannon):", initialvalue="kullback")
+    def run_combined_optimization_task(self):
+        self.criteria = simpledialog.askstring("Критерій оптимізації", "Введіть критерій (kullback/shannon):",
+                                               initialvalue="kullback")
         if self.criteria not in ['kullback', 'shannon']:
             messagebox.showerror("Помилка", "Вибрано некоректний критерій.")
             return
+        self.plot_combined_optimization()
 
-        self.parallel_optimization()  # Виконати паралельну оптимізацію
+        # Отримання оптимальних значень після оптимізації
+        _, _, optimal_radius, max_kfe_radius = self.parallel_optimization()
+        _, _, optimal_delta, max_kfe_delta = self.optimize_delta()
+
+        # Виведення результатів оптимізації у self.matrix_window
+        self.matrix_window.insert(tk.END, "\nРезультати оптимізації:\n")
+        self.matrix_window.insert(tk.END,
+                                  f"Оптимальне значення radius: {optimal_radius:.3f}, Максимальне КФЕ для radius: {max_kfe_radius:.3f}\n")
+        self.matrix_window.insert(tk.END,
+                                  f"Оптимальне значення delta: {optimal_delta:.3f}, Максимальне КФЕ для delta: {max_kfe_delta:.3f}\n")
+        self.matrix_window.insert(tk.END, "-" * 50 + "\n")
 
 if __name__ == "__main__":
     root = tk.Tk()
