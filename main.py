@@ -843,8 +843,7 @@ class ImageLoaderApp:
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-##############################################
-# Код екзамену
+# Код екзамену ##############################################
 # 1:Формування екзаменаційної матриці
     def generate_exam_matrix(self):
         self.exam_matrices = []
@@ -903,7 +902,7 @@ class ImageLoaderApp:
 
         messagebox.showinfo("Recognition Results", result_message)
 
-    # 3: Оцінка результатів розпізнавання
+# 3: Оцінка результатів розпізнавання
     def calculate_quality(self):
         # Перевірка чи розпізнавальні результати мають той самий розмір, що і кількість класів
         if len(self.recognition_results) != len(self.class_names):
@@ -974,11 +973,9 @@ class ImageLoaderApp:
         self.training_matrices = self.image_matrices
         self.generate_exam_matrix()  # Формування екзаменаційної матриці після завантаження
 
-############################################
-#Paralel
+# Paralel ############################################
 #Паралельна оптимізація системи контрольних допусків для всіх ознак одночасно.
 #Виконує розрахунок оптимального радіуса контейнера та максимізації значення критерію Кульбака або Шеннона.
-
     def parallel_optimization(self):
 
         max_radius = 100  # Максимальний радіус для обчислень
@@ -1023,7 +1020,7 @@ class ImageLoaderApp:
         ax.set_title(f"Оптимізація за критерієм {self.criteria.capitalize()}")
         ax.legend()
 
-    # Відображення графіка в tkinter
+        # Відображення графіка в tkinter
         for widget in self.image_frame.winfo_children():
             widget.destroy()
         canvas = FigureCanvasTkAgg(fig, master=self.image_frame)
