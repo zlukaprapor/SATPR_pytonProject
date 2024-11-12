@@ -4,7 +4,6 @@ from PIL import Image, ImageTk
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-import math
 from scipy.spatial.distance import euclidean
 
 class ImageLoaderApp:
@@ -843,8 +842,9 @@ class ImageLoaderApp:
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-##############################################
+##############
 # Код екзамену
+##############
 # 1:Формування екзаменаційної матриці
     def generate_exam_matrix(self):
         self.exam_matrices = []
@@ -1093,6 +1093,8 @@ class ImageLoaderApp:
 
 #Запуск завдання оптимізації з вибором критерію.
     def run_combined_optimization_task(self):
+        self.clear_canvas()  # Очищуємо попередній графік
+        self.matrix_window.delete(1.0, tk.END)
         self.criteria = simpledialog.askstring("Критерій оптимізації", "Введіть критерій (kullback/shannon):",
                                                initialvalue="kullback")
         if self.criteria not in ['kullback', 'shannon']:
@@ -1110,7 +1112,7 @@ class ImageLoaderApp:
                                   f"Оптимальне значення radius: {optimal_radius:.3f}, Максимальне КФЕ для radius: {max_kfe_radius:.3f}\n")
         self.matrix_window.insert(tk.END,
                                   f"Оптимальне значення delta: {optimal_delta:.3f}, Максимальне КФЕ для delta: {max_kfe_delta:.3f}\n")
-        self.matrix_window.insert(tk.END, "-" * 50 + "\n")
+        self.matrix_window.insert(tk.END, "-" * 20 + "\n")
 
 if __name__ == "__main__":
     root = tk.Tk()
